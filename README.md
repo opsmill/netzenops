@@ -9,7 +9,7 @@ Published with GitHub Pages at <https://opsmill.github.io/netzenops/>.
 It's a static site with no build step: `index.html`, `style.css` and `app.js` served straight from `main`.
 
 1. The page loads `quotes.md` and turns every Markdown list item into a quote.
-2. Clicking **FIND NETZENOPS** starts the ambient sound and the affirmation loop. Browsers block audio until the visitor interacts, which is why the button exists.
+2. Clicking **FIND MY AUTOMATION ZEN** starts the ambient sound and the affirmation loop. Browsers block audio until the visitor interacts, which is why the button exists.
 3. Quotes play in shuffled order and none repeats until all of them have played. Each quote fades in and its voice-over plays from `audio/`. After a 2 second pause the next one starts, and the background topology re-converges in a new colour.
 4. A quote with no audio file still shows, it stays on screen for roughly the time it takes to read (6 seconds at minimum).
 5. If there is no `audio/ambient.mp3`, a quiet synth pad is generated in the browser so the room is never completely silent.

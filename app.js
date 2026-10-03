@@ -94,12 +94,58 @@ function createShuffleBag(items) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ---------------------------------------------------------------------------
+// Mute: one switch for every sound source, remembered between visits.
+// ---------------------------------------------------------------------------
+
+const MUTE_KEY = "netzenops-muted";
+const PAD_VOLUME = 0.06;
+
+const sound = {
+  muted: readMutePreference(),
+  media: new Set(),
+  padGain: null,
+};
+
+function readMutePreference() {
+  try {
+    return localStorage.getItem(MUTE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setMuted(muted) {
+  sound.muted = muted;
+  for (const element of sound.media) element.muted = muted;
+  if (sound.padGain) {
+    const { gain, context } = sound.padGain;
+    gain.cancelScheduledValues(context.currentTime);
+    gain.setTargetAtTime(muted ? 0 : PAD_VOLUME, context.currentTime, 0.15);
+  }
+  try {
+    localStorage.setItem(MUTE_KEY, String(muted));
+  } catch {
+    // Private windows can refuse storage; muting still works for this visit.
+  }
+}
+
+function trackMedia(element) {
+  element.muted = sound.muted;
+  sound.media.add(element);
+  return element;
+}
+
 function playVoice(src) {
   return new Promise((resolve) => {
-    const audio = new Audio(src);
-    audio.addEventListener("ended", () => resolve(true), { once: true });
-    audio.addEventListener("error", () => resolve(false), { once: true });
-    audio.play().catch(() => resolve(false));
+    const audio = trackMedia(new Audio(src));
+    const finish = (played) => {
+      sound.media.delete(audio);
+      resolve(played);
+    };
+    audio.addEventListener("ended", () => finish(true), { once: true });
+    audio.addEventListener("error", () => finish(false), { once: true });
+    audio.play().catch(() => finish(false));
   });
 }
 
@@ -111,7 +157,7 @@ async function startAmbient() {
   try {
     const head = await fetch(AMBIENT_FILE, { method: "HEAD", cache: "no-cache" });
     if (head.ok) {
-      const track = new Audio(AMBIENT_FILE);
+      const track = trackMedia(new Audio(AMBIENT_FILE));
       track.loop = true;
       track.volume = 0.5;
       await track.play();
@@ -130,7 +176,8 @@ function startSynthPad() {
 
   const master = context.createGain();
   master.gain.setValueAtTime(0, context.currentTime);
-  master.gain.linearRampToValueAtTime(0.06, context.currentTime + 6);
+  master.gain.linearRampToValueAtTime(sound.muted ? 0 : PAD_VOLUME, context.currentTime + 6);
+  sound.padGain = { gain: master.gain, context };
 
   const filter = context.createBiquadFilter();
   filter.type = "lowpass";
@@ -396,11 +443,32 @@ async function main() {
       enter.remove();
       stage.classList.add("playing");
       quoteElement.hidden = false;
+      setupMuteButton(document.getElementById("mute"));
       startAmbient();
       runAffirmations(quotes, background, quoteElement);
     },
     { once: true },
   );
+}
+
+function setupMuteButton(button) {
+  const render = () => {
+    button.setAttribute("aria-pressed", String(sound.muted));
+    button.setAttribute("aria-label", sound.muted ? "Unmute" : "Mute");
+    button.title = sound.muted ? "Unmute (M)" : "Mute (M)";
+  };
+  const toggle = () => {
+    setMuted(!sound.muted);
+    render();
+  };
+  button.addEventListener("click", toggle);
+  document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "m" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      toggle();
+    }
+  });
+  render();
+  button.hidden = false;
 }
 
 main();

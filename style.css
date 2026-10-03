@@ -119,8 +119,68 @@ body {
   text-decoration: none;
 }
 
+.footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
 .footer .brand {
-  font-weight: 800;
+  height: 1.5em;
+  width: auto;
+  display: block;
+}
+
+.mute {
+  position: fixed;
+  bottom: 2rem;
+  left: 2.5rem;
+  z-index: 20;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.25s, background-color 0.25s;
+}
+
+.mute:hover,
+.mute:focus-visible {
+  opacity: 1;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.mute svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.mute .wave {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mute .icon-muted,
+.mute[aria-pressed="true"] .icon-sound {
+  display: none;
+}
+
+.mute[aria-pressed="true"] .icon-muted {
+  display: block;
+}
+
+@media (max-width: 639px) {
+  .mute {
+    left: 16px;
+    bottom: 1.75rem;
+  }
 }
 
 @media (min-width: 640px) {

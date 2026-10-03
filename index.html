@@ -15,13 +15,24 @@
     <canvas id="topology" aria-hidden="true"></canvas>
 
     <main id="stage">
-      <button id="enter" type="button">FIND NETZENOPS</button>
+      <button id="enter" type="button">FIND MY AUTOMATION ZEN</button>
       <p id="quote" class="quote" aria-live="polite" hidden></p>
     </main>
 
+    <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false" title="Mute (M)" hidden>
+      <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+      </svg>
+      <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path class="wave" d="M16.5 9.5l5 5M21.5 9.5l-5 5" />
+      </svg>
+    </button>
+
     <footer class="footer">
       <a href="https://opsmill.com" target="_blank" rel="noopener">
-        an <span class="brand">opsmill</span> production
+        an <img class="brand" src="img/opsmill-logo.svg" alt="OpsMill" /> production
       </a>
     </footer>
 
