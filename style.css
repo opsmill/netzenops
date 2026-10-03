@@ -1,0 +1,138 @@
+:root {
+  --bg: #05050d;
+  --text: #ffffff;
+  --glow: #988702;
+  --button-bg: #000000;
+  --button-hover: #374151;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#topology {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+#stage.playing {
+  justify-content: flex-end;
+  padding: 0 2.5rem 15vh;
+}
+
+#enter {
+  cursor: pointer;
+  border: 0;
+  border-radius: 0;
+  background: var(--button-bg);
+  color: var(--text);
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: background-color 0.25s;
+}
+
+#enter:hover,
+#enter:focus-visible {
+  background: var(--button-hover);
+}
+
+.quote {
+  margin: 0;
+  max-width: 28em;
+  text-align: center;
+  font-family: Papyrus, "Herculanum", fantasy;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  line-height: 1.15;
+  color: var(--text);
+  text-shadow: 0 0 20px #ffffff, 0 0 20px var(--glow);
+  z-index: 10;
+}
+
+.quote.reveal {
+  animation:
+    fade-in 4s ease forwards,
+    diamond-in 2.5s cubic-bezier(0.25, 1, 0.3, 1) forwards;
+}
+
+.quote.leave {
+  animation: fade-out 1.2s ease forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes diamond-in {
+  from { clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%); }
+  to { clip-path: polygon(50% -150%, 250% 50%, 50% 250%, -150% 50%); }
+}
+
+.footer {
+  position: fixed;
+  bottom: 2.5rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 100;
+  opacity: 0.8;
+  z-index: 20;
+}
+
+.footer a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.footer .brand {
+  font-weight: 800;
+}
+
+@media (min-width: 640px) {
+  .footer {
+    left: auto;
+    right: 2.5rem;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quote.reveal {
+    animation: fade-in 1.5s ease forwards;
+  }
+}
