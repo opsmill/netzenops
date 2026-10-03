@@ -33,7 +33,18 @@ The terms that float up through the background (`router bgp`, `pytest` and frien
 
 ## Adding audio
 
-Export each quote from ElevenLabs as MP3 and drop it in `audio/` using the filename below. The slug rule: lowercase, accents and apostrophes removed, every run of other characters replaced with a single hyphen.
+The quickest route is the generator script, which calls the ElevenLabs API and writes each clip under the right filename. Quotes alternate between "Posh - A British Woman" and "Tarquin - Posh & English RP" in file order, using the `eleven_v3` model. Clips that already exist are skipped, so after adding a quote only the new one is generated.
+
+```bash
+printf 'ELEVENLABS_API_KEY=%s\n' 'your-key' > .env   # gitignored
+uv run scripts/generate_audio.py --dry-run           # show the plan, no API calls
+uv run scripts/generate_audio.py                     # generate missing clips
+uv run scripts/generate_audio.py --force --only "conf t"   # re-roll one take
+```
+
+Note: v3 varies between takes. If one sounds rushed or odd, re-roll it with `--force --only "<part of the quote>"`.
+
+To do it by hand instead, export each quote from ElevenLabs as MP3 and drop it in `audio/` using the filename below. The slug rule: lowercase, accents and apostrophes removed, every run of other characters replaced with a single hyphen.
 
 | Quote | File |
 | --- | --- |
