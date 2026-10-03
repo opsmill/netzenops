@@ -14,18 +14,30 @@ Anything that is not a list item (like this paragraph) is ignored.
 
 ## Quotes
 
-- Why am I always finding smarter ways to automate network tasks?
-- How did I become so good at turning messy configs into clean, reproducible code?
-- Why do I enjoy solving problems that others avoid in legacy systems?
-- How did I become the kind of person who simplifies complex infrastructure?
-- Why does network automation feel more natural to me every day?
-- Why do I keep discovering powerful tools that make my job easier?
-- How did I become so skilled at bridging traditional networking with modern DevOps practices?
-- Why do I attract teammates and mentors who help me grow?
-- How do I stay so calm when troubleshooting thousands of lines of YAML and Python?
-- Why am I so great at spotting patterns in logs, configs, and code?
-- Why does my network get more resilient the more I automate?
-- Why do I find it so easy to teach others what I’ve learned in automation?
-- Why do I trust myself to learn any new tool—be it Nornir, Ansible, or Terraform?
-- Why do I keep uncovering new layers of value in the data my network provides?
-- Why does writing tests for my network code feel like second nature now?
+- Why does it take me three days to automate a ten-minute task, and why am I right to do it?
+- How did I turn one messy config into four hundred perfectly reproducible messy configs?
+- Why do I enjoy fixing legacy systems that nobody remembers buying?
+- How did I simplify our infrastructure down to seven tools, three repos and a cron job?
+- Why does typing "conf t" now feel like a moral failing?
+- Why do I keep discovering powerful new tools that promise exactly what the last one did?
+- How did I become fluent in both "it's not the network" and "works on my machine"?
+- Why do my teammates call me "the automation person" like it's a diagnosis?
+- How do I stay so calm when the whole outage was two spaces of YAML indentation?
+- Why am I so great at spotting patterns in logs, especially the one where it's DNS?
+- Why does my network get more resilient every time I stop people touching it?
+- Why is teaching automation so easy, and stopping people running it against production so hard?
+- Why do I trust myself to learn any new tool, even the one we'll replace next quarter?
+- Why do I keep finding new value in my network data, mostly that half of it is wrong?
+- Why do all my network tests pass, and why do they only check that the YAML parses?
+- Why is my spreadsheet of IP addresses called a source of truth now?
+- How did I learn to take down four hundred switches as reliably as one?
+- Why does everyone trust the pipeline, when it's just me with extra steps?
+- Why do my Jinja templates have more if statements than the config has lines?
+- How did I become the person who says "idempotent" at dinner parties?
+- Why is my rollback plan, git revert and hope, so effective?
+- Why is my proof of concept from 2019 still running in production?
+- Why does parsing show command output with regex bring me such peace?
+- Why does my network have perfect drift detection, and absolutely no drift remediation?
+- Why do I branch my network data like code, and still merge on a Friday?
+- Why do I feel so calm knowing the vendor API changes next release?
+- Why does my change window feel so peaceful at 2am on a Sunday?

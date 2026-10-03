@@ -1,8 +1,10 @@
 // NetZenOps: affirmations for the network automation engineer.
 // Quotes come from quotes.md, voice-overs from audio/<slug>.mp3, and the
-// background is a generated network topology that re-converges on every quote.
+// background is a generated network topology that re-converges on every quote,
+// with the floating words taken from terms.md.
 
 const QUOTES_FILE = "quotes.md";
+const TERMS_FILE = "terms.md";
 const AUDIO_DIR = "audio";
 const AMBIENT_FILE = `${AUDIO_DIR}/ambient.mp3`;
 const GAP_AFTER_QUOTE_MS = 2000;
@@ -25,12 +27,17 @@ function slugify(text) {
     .replace(/^-+|-+$/g, "");
 }
 
+function parseListItems(markdown) {
+  return markdown
+    .split(/\r?\n/)
+    .map((line) => line.match(/^\s*[-*+]\s+(.+?)\s*$/))
+    .filter(Boolean)
+    .map((item) => item[1]);
+}
+
 function parseQuotes(markdown) {
   const quotes = [];
-  for (const line of markdown.split(/\r?\n/)) {
-    const item = line.match(/^\s*[-*+]\s+(.+?)\s*$/);
-    if (!item) continue;
-    let text = item[1];
+  for (let text of parseListItems(markdown)) {
     let audio = null;
     const override = text.match(/<!--\s*audio:\s*([^\s>]+?)\s*-->/i);
     if (override) {
@@ -49,6 +56,19 @@ async function loadQuotes() {
   const quotes = parseQuotes(await response.text());
   if (quotes.length === 0) throw new Error(`No list items found in ${QUOTES_FILE}`);
   return quotes;
+}
+
+// Background terms are decoration, so a missing or empty terms.md just means
+// no floating words rather than an error.
+async function loadTerms() {
+  try {
+    const response = await fetch(TERMS_FILE, { cache: "no-cache" });
+    if (!response.ok) throw new Error(`${response.status}`);
+    return parseListItems(await response.text());
+  } catch (error) {
+    console.info(`Could not load ${TERMS_FILE}, background words disabled`, error);
+    return [];
+  }
 }
 
 // Shuffle bag: every quote plays once before any repeats, and the first quote
@@ -147,12 +167,6 @@ function startSynthPad() {
 // ---------------------------------------------------------------------------
 // Topology background
 // ---------------------------------------------------------------------------
-
-const TOKENS = [
-  "interface", "vlan 100", "router bgp", "commit", "git push", "show ip route",
-  "no shutdown", "pytest", "yaml", "jinja2", "nornir", "ansible", "terraform",
-  "infrahub", "diff", "idempotent", "rollback", "lldp", "evpn", "vxlan",
-];
 
 function createScene(width, height) {
   const hue = Math.random() * 360;
@@ -255,6 +269,7 @@ function createBackground(canvas) {
   let current = null;
   let previous = null;
   const tokens = [];
+  let terms = [];
   const fadeMs = reducedMotion ? 1500 : 5000;
 
   function resize() {
@@ -270,7 +285,7 @@ function createBackground(canvas) {
 
   function spawnToken() {
     tokens.push({
-      text: TOKENS[Math.floor(Math.random() * TOKENS.length)],
+      text: terms[Math.floor(Math.random() * terms.length)],
       x: Math.random() * width,
       y: height + 20,
       speed: 0.15 + Math.random() * 0.35,
@@ -294,7 +309,7 @@ function createBackground(canvas) {
     drawScene(ctx, current, time, previous ? fade : 1);
 
     if (!reducedMotion) {
-      if (Math.random() < 0.02 && tokens.length < 14) spawnToken();
+      if (terms.length && Math.random() < 0.02 && tokens.length < 14) spawnToken();
       for (let i = tokens.length - 1; i >= 0; i--) {
         const token = tokens[i];
         token.y -= token.speed;
@@ -316,6 +331,9 @@ function createBackground(canvas) {
   requestAnimationFrame(frame);
 
   return {
+    setTerms(newTerms) {
+      terms = newTerms;
+    },
     // Fade to a freshly converged topology in a new colour.
     reconverge() {
       previous = current;
@@ -359,6 +377,8 @@ async function main() {
   const stage = document.getElementById("stage");
   const enter = document.getElementById("enter");
   const quoteElement = document.getElementById("quote");
+
+  loadTerms().then((terms) => background.setTerms(terms));
 
   let quotes;
   try {
