@@ -100,11 +100,14 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const MUTE_KEY = "netzenops-muted";
 const PAD_VOLUME = 0.06;
+const AMBIENT_VOLUME = 0.5;
 
 const sound = {
   muted: readMutePreference(),
   media: new Set(),
   padGain: null,
+  voice: null,
+  context: null,
 };
 
 function readMutePreference() {
@@ -136,15 +139,42 @@ function trackMedia(element) {
   return element;
 }
 
+// Mobile browsers, iOS Safari above all, only let a media element or an
+// AudioContext make sound if it was first started inside a user gesture, and
+// that permission belongs to the element, not the page. So the voice element
+// and the audio context are created once, in the click handler, and reused for
+// every quote. A fresh new Audio() per quote plays once on a phone, then
+// silently fails for every quote after it.
+function unlockAudio() {
+  sound.voice = trackMedia(new Audio());
+  sound.voice.preload = "auto";
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (AudioContextClass) {
+    sound.context = new AudioContextClass();
+    sound.context.resume();
+    // iOS suspends the context when the page is backgrounded.
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && sound.context.state !== "running") sound.context.resume();
+    });
+  }
+}
+
+// Must be called synchronously from the click handler for the first quote, so
+// the shared voice element's first play() happens inside the gesture.
 function playVoice(src) {
   return new Promise((resolve) => {
-    const audio = trackMedia(new Audio(src));
+    const audio = sound.voice;
     const finish = (played) => {
-      sound.media.delete(audio);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
       resolve(played);
     };
-    audio.addEventListener("ended", () => finish(true), { once: true });
-    audio.addEventListener("error", () => finish(false), { once: true });
+    const onEnded = () => finish(true);
+    const onError = () => finish(false);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
+    audio.src = src;
     audio.play().catch(() => finish(false));
   });
 }
@@ -153,26 +183,35 @@ function playVoice(src) {
 // Ambient sound: audio/ambient.mp3 if present, otherwise a soft synth pad.
 // ---------------------------------------------------------------------------
 
-async function startAmbient() {
-  try {
-    const head = await fetch(AMBIENT_FILE, { method: "HEAD", cache: "no-cache" });
-    if (head.ok) {
-      const track = trackMedia(new Audio(AMBIENT_FILE));
-      track.loop = true;
-      track.volume = 0.5;
-      await track.play();
-      return;
-    }
-  } catch (error) {
-    console.info("No ambient track, using synth pad", error);
+// Called from the click handler. The track is started straight away rather
+// than after an existence check, because an await would leave the gesture.
+function startAmbient() {
+  const track = trackMedia(new Audio(AMBIENT_FILE));
+  track.loop = true;
+  let fellBack = false;
+  const fallBack = () => {
+    if (fellBack) return;
+    fellBack = true;
+    sound.media.delete(track);
+    console.info("No ambient track, using synth pad");
+    startSynthPad();
+  };
+  track.addEventListener("error", fallBack, { once: true });
+
+  // iOS ignores element.volume, so set the level with a gain node instead.
+  if (sound.context) {
+    const gain = sound.context.createGain();
+    gain.gain.value = AMBIENT_VOLUME;
+    sound.context.createMediaElementSource(track).connect(gain).connect(sound.context.destination);
+  } else {
+    track.volume = AMBIENT_VOLUME;
   }
-  startSynthPad();
+  track.play().catch(fallBack);
 }
 
 function startSynthPad() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
-  const context = new AudioContextClass();
+  const context = sound.context;
+  if (!context) return;
 
   const master = context.createGain();
   master.gain.setValueAtTime(0, context.currentTime);
@@ -444,6 +483,8 @@ async function main() {
       stage.classList.add("playing");
       quoteElement.hidden = false;
       setupMuteButton(document.getElementById("mute"));
+      // Everything audible starts synchronously inside this click; see unlockAudio().
+      unlockAudio();
       startAmbient();
       runAffirmations(quotes, background, quoteElement);
     },
