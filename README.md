@@ -33,7 +33,7 @@ The terms that float up through the background (`router bgp`, `pytest` and frien
 
 ## Adding audio
 
-The quickest route is the generator script, which calls the ElevenLabs API and writes each clip under the right filename. Quotes alternate between "Posh - A British Woman" and "Tarquin - Posh & English RP" in file order, using the `eleven_v3` model. Clips that already exist are skipped, so after adding a quote only the new one is generated.
+The quickest route is the generator script, which calls the ElevenLabs API and writes each clip under the right filename. Quotes alternate between "Posh - A British Woman" and "Tarquin - Posh & English RP" in file order, using the `eleven_v3` model. To give a quote its own voice, end its line with `<!-- voice: Ingibjorg - Calm, Warm Ad -->` (the exact ElevenLabs voice name). The comment is hidden on the site. Clips that already exist are skipped, so after adding a quote only the new one is generated.
 
 ```bash
 printf 'ELEVENLABS_API_KEY=%s\n' 'your-key' > .env   # gitignored
@@ -75,6 +75,8 @@ To do it by hand instead, export each quote from ElevenLabs as MP3 and drop it i
 | Why do I branch my network data like code, and still merge on a Friday? | `why-do-i-branch-my-network-data-like-code-and-still-merge-on-a-friday.mp3` |
 | Why do I feel so calm knowing the vendor API changes next release? | `why-do-i-feel-so-calm-knowing-the-vendor-api-changes-next-release.mp3` |
 | Why does my change window feel so peaceful at 2am on a Sunday? | `why-does-my-change-window-feel-so-peaceful-at-2am-on-a-sunday.mp3` |
+| Why am I so confident none of my dependencies are compromised that I run everything as root? | `why-am-i-so-confident-none-of-my-dependencies-are-compromised-that-i-run-everything-as-root.mp3` |
+| Why don't I need to review my vibe-coded scripts, when surely the open-source maintainers review theirs? | `why-dont-i-need-to-review-my-vibe-coded-scripts-when-surely-the-open-source-maintainers-review-theirs.mp3` |
 
 
 If a quote isn't playing its audio, open the browser console. The page logs every audio path it tried and couldn't find.

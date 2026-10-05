@@ -41,3 +41,5 @@ Anything that is not a list item (like this paragraph) is ignored.
 - Why do I branch my network data like code, and still merge on a Friday?
 - Why do I feel so calm knowing the vendor API changes next release?
 - Why does my change window feel so peaceful at 2am on a Sunday?
+- Why am I so confident none of my dependencies are compromised that I run everything as root? <!-- voice: Ingibjorg - Calm, Warm Ad -->
+- Why don't I need to review my vibe-coded scripts, when surely the open-source maintainers review theirs? <!-- voice: Ingibjorg - Calm, Warm Ad -->

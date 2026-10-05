@@ -38,13 +38,12 @@ function parseListItems(markdown) {
 }
 
 // An optional <!-- audio: name --> comment picks the filename instead of the slug.
+// Any other HTML comment, such as the generator's <!-- voice: name -->, is
+// stripped so it never shows on screen or changes the filename.
 function extractAudioOverride(item) {
   const override = item.match(/<!--\s*audio:\s*([^\s>]+?)\s*-->/i);
-  if (!override) return { text: item, stem: null };
-  return {
-    text: item.replace(override[0], "").trim(),
-    stem: override[1].replace(/\.mp3$/i, ""),
-  };
+  const text = item.replace(/<!--[\s\S]*?-->/g, "").trim();
+  return { text, stem: override ? override[1].replace(/\.mp3$/i, "") : null };
 }
 
 function parseQuotes(markdown) {

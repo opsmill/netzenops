@@ -4,10 +4,10 @@
 # ///
 """Generate ElevenLabs voice-overs for every quote in quotes.md.
 
-Quotes alternate between the configured voices in file order, and each clip is
-saved under the same filename the site derives in app.js. Existing files are
-skipped unless --force is given, so adding a quote only costs credits for the
-new one.
+Quotes alternate between the configured voices in file order, unless a quote
+names its own with <!-- voice: name -->. Each clip is saved under the same
+filename the site derives in app.js. Existing files are skipped unless --force
+is given, so adding a quote only costs credits for the new one.
 
 The API key is read from ELEVENLABS_API_KEY in the environment or in a .env
 file at the repo root. It is never logged.
@@ -52,6 +52,7 @@ class Quote:
 
     text: str
     filename: str
+    voice: str | None = None
 
 
 def slugify(text: str) -> str:
@@ -77,21 +78,22 @@ def parse_quotes(markdown: str) -> list[Quote]:
         markdown: Contents of quotes.md.
 
     Returns:
-        Quotes in file order, honouring any <!-- audio: name --> override.
+        Quotes in file order, honouring any <!-- audio: name --> override and
+        any <!-- voice: name --> choice. Every comment is stripped from the text.
     """
     quotes = []
     for line in markdown.splitlines():
         item = re.match(r"^\s*[-*+]\s+(.+?)\s*$", line)
         if not item:
             continue
-        text = item.group(1)
-        stem = None
-        override = re.search(r"<!--\s*audio:\s*([^\s>]+?)\s*-->", text, re.IGNORECASE)
-        if override:
-            stem = re.sub(r"\.mp3$", "", override.group(1), flags=re.IGNORECASE)
-            text = text.replace(override.group(0), "").strip()
+        raw = item.group(1)
+        audio = re.search(r"<!--\s*audio:\s*([^\s>]+?)\s*-->", raw, re.IGNORECASE)
+        voice = re.search(r"<!--\s*voice:\s*(.+?)\s*-->", raw, re.IGNORECASE)
+        text = re.sub(r"<!--.*?-->", "", raw).strip()
+        stem = re.sub(r"\.mp3$", "", audio.group(1), flags=re.IGNORECASE) if audio else None
         if text:
-            quotes.append(Quote(text=text, filename=f"{stem or slugify(text)}.mp3"))
+            filename = f"{stem or slugify(text)}.mp3"
+            quotes.append(Quote(text=text, filename=filename, voice=voice and voice.group(1)))
     return quotes
 
 
@@ -240,7 +242,7 @@ def main() -> None:
 
     plan = []
     for index, quote in enumerate(quotes):
-        voice = voices[index % len(voices)]
+        voice = quote.voice or voices[index % len(voices)]
         target = AUDIO_DIR / quote.filename
         if args.only and args.only.lower() not in quote.text.lower():
             continue
