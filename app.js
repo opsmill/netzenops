@@ -107,6 +107,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const MUTE_KEY = "netzenops-muted";
 const AMBIENCE_KEY = "netzenops-ambience";
+const HINT_KEY = "netzenops-ambience-menu-found";
+const HINT_DELAY_MS = 8000;
+const HINT_VISIBLE_MS = 7000;
 const PAD_VOLUME = 0.06;
 const AMBIENCE_FADE_S = 1.5;
 
@@ -207,7 +210,7 @@ function parseAmbiences(markdown) {
     }
     if (!inSection) continue;
     const option = line.match(/^[-*+]\s+([^:]+?)\s*(?::\s*(.*?))?\s*$/);
-    const setting = line.match(/^\s+[-*+]\s+(prompt|audio|builtin):\s*(.+?)\s*$/i);
+    const setting = line.match(/^\s+[-*+]\s+(prompt|audio|builtin|default):\s*(.+?)\s*$/i);
     if (option) {
       current = { name: option[1], tagline: option[2] ?? "", settings: {} };
       ambiences.push(current);
@@ -222,7 +225,9 @@ function parseAmbiences(markdown) {
       return [];
     }
     const id = settings.audio?.replace(/\.mp3$/i, "") ?? slugify(name);
-    return [{ id, name, tagline, builtIn, src: builtIn ? null : `${AMBIENCE_DIR}/${id}.mp3` }];
+    const isDefault = /^(yes|true)$/i.test(settings.default ?? "");
+    const src = builtIn ? null : `${AMBIENCE_DIR}/${id}.mp3`;
+    return [{ id, name, tagline, builtIn, src, isDefault }];
   });
 }
 
@@ -668,8 +673,10 @@ function setupAmbienceMenu(root, ambiences) {
   const current = root.querySelector(".ambience-current");
   const menu = root.querySelector(".ambience-menu");
   const list = root.querySelector('[role="listbox"]');
+  const hint = root.querySelector(".ambience-hint");
   const savedIndex = ambiences.findIndex((ambience) => ambience.id === readPreference(AMBIENCE_KEY));
-  let selected = Math.max(0, savedIndex);
+  const defaultIndex = ambiences.findIndex((ambience) => ambience.isDefault);
+  let selected = [savedIndex, defaultIndex, 0].find((index) => index >= 0);
   let active = selected;
 
   const options = ambiences.map((ambience, index) => {
@@ -717,6 +724,7 @@ function setupAmbienceMenu(root, ambiences) {
   }
 
   function open() {
+    dismissHint(true);
     menu.hidden = false;
     button.setAttribute("aria-expanded", "true");
     setActive(selected);
@@ -731,6 +739,31 @@ function setupAmbienceMenu(root, ambiences) {
     if (refocus) button.focus();
   }
 
+  // A gentle nudge for anyone who has not found the menu yet: the pill glows
+  // and a speech bubble rises above it, then both fade away. Once the menu has
+  // been opened it never appears again.
+  const hintTimers = [];
+  function showHint() {
+    if (!menu.hidden) return;
+    hint.hidden = false;
+    root.classList.add("hinting");
+    hintTimers.push(setTimeout(() => dismissHint(false), HINT_VISIBLE_MS));
+  }
+
+  function dismissHint(found) {
+    hintTimers.forEach(clearTimeout);
+    if (found) writePreference(HINT_KEY, "true");
+    if (hint.hidden) return;
+    root.classList.remove("hinting");
+    hint.classList.add("leaving");
+    setTimeout(() => {
+      hint.hidden = true;
+      hint.classList.remove("leaving");
+    }, 400);
+  }
+
+  if (readPreference(HINT_KEY) !== "true") hintTimers.push(setTimeout(showHint, HINT_DELAY_MS));
+  hint.addEventListener("click", open);
   button.addEventListener("click", () => (menu.hidden ? open() : close(true)));
   list.addEventListener("keydown", (event) => {
     const moves = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: options.length - 1 };

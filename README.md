@@ -95,8 +95,9 @@ The menu next to the mute button asks "Where are you automating from today?" and
 - `prompt:` is what ElevenLabs gets asked to generate.
 - `audio:` (optional) overrides the filename. By default "Data center" plays `audio/ambience/data-center.mp3`, the name turned into a slug with the same rule as quotes.
 - `builtin:` is `synth` for the drone generated in the browser, or `off` for silence. Built-in options need no file.
+- `default: yes` marks what first-time visitors hear. It's on "Synth pad" now. Without it, the first option is the default.
 
-Options whose file doesn't exist yet are hidden from the menu, so it's safe to list ideas before generating them. The first option is the default, and each visitor's choice is remembered.
+Options whose file doesn't exist yet are hidden from the menu, so it's safe to list ideas before generating them. Each visitor's own choice is remembered and overrides the default.
 
 Every loop is prepared in the browser before it plays, because generated loops vary a lot. The quietest file here is about 45 dB below the loudest, and some don't wrap cleanly.
 

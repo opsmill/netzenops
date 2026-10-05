@@ -13,10 +13,13 @@ tagline both show in the menu. Indented underneath it go settings:
   name turned into a slug (`Data center` plays `audio/ambience/data-center.mp3`).
 - `builtin:` (optional) `synth` for the drone generated in the browser, or
   `off` for silence. Built-in options need no prompt or file.
+- `default: yes` (optional) on one option makes it what first-time visitors
+  hear. Without it, the first option in the menu is the default. A visitor's
+  own choice always wins once they have made one.
 
 An option whose file does not exist yet is left out of the menu, so it is safe
-to list ideas before generating them. The first option in the menu is the
-default. Anything outside the "Ambiences" list below is ignored.
+to list ideas before generating them. Anything outside the "Ambiences" list
+below is ignored.
 
 ## Ambiences
 
@@ -40,5 +43,6 @@ default. Anything outside the "Ambiences" list below is ignored.
   - prompt: Cozy coffee shop, quiet indistinct chatter, espresso machine hiss, cups and saucers clinking, no music, no clear words
 - Synth pad: Pure, unearned serenity. No hardware was harmed.
   - builtin: synth
+  - default: yes
 - Off: Just you and the voice in your head.
   - builtin: off

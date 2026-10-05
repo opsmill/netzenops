@@ -42,9 +42,11 @@ body {
   padding: 0 16px;
 }
 
+/* At least 10rem clear at the bottom so a two-line quote never meets the
+   controls or the menu hint on short screens. */
 #stage.playing {
   justify-content: flex-end;
-  padding: 0 2.5rem 15vh;
+  padding: 0 2.5rem max(15vh, 10rem);
 }
 
 #enter {
@@ -253,6 +255,65 @@ body {
   transform: translateY(-75%) rotate(225deg);
 }
 
+/* The one-time nudge that the menu exists. Sits above the pill, which starts
+   3rem in from the left edge of .controls (the mute button plus the gap). */
+.ambience-hint {
+  position: absolute;
+  left: 3rem;
+  bottom: calc(100% + 0.75rem);
+  width: max-content;
+  max-width: min(19rem, calc(100vw - 32px - 3rem));
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgb(245 215 110 / 0.35);
+  border-radius: 0.8rem;
+  background: rgb(8 8 20 / 0.85);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgb(152 135 2 / 0.3);
+  animation: hint-in 0.6s ease forwards;
+  transition: opacity 0.4s;
+}
+
+.ambience-hint[hidden] {
+  display: none;
+}
+
+.ambience-hint::after {
+  content: "";
+  position: absolute;
+  left: 1.4rem;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgb(245 215 110 / 0.35);
+  border-bottom: 1px solid rgb(245 215 110 / 0.35);
+  background: rgb(8 8 20 / 0.95);
+  transform: rotate(45deg);
+}
+
+.ambience-hint.leaving {
+  opacity: 0;
+}
+
+.ambience.hinting .ambience-button {
+  opacity: 1;
+  animation: hint-glow 2.4s ease-in-out 2;
+}
+
+@keyframes hint-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hint-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(245 215 110 / 0); }
+  50% { box-shadow: 0 0 16px 2px rgb(245 215 110 / 0.5); }
+}
+
 /* Positioned against .controls so it can use the full width on a phone. */
 .ambience-menu {
   position: absolute;
@@ -365,7 +426,7 @@ body {
   }
 
   #stage.playing {
-    padding-bottom: 22vh;
+    padding-bottom: max(26vh, 12rem);
   }
 }
 
@@ -380,5 +441,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .quote.reveal {
     animation: fade-in 1.5s ease forwards;
+  }
+
+  .ambience-hint {
+    animation: fade-in 0.6s ease forwards;
+  }
+
+  .ambience.hinting .ambience-button {
+    animation: none;
+    box-shadow: 0 0 12px 1px rgb(245 215 110 / 0.4);
   }
 }

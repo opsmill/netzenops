@@ -53,7 +53,7 @@ def parse_ambiences(markdown: str) -> list[Ambience]:
     """Extract generatable options, matching parseAmbiences() in app.js.
 
     Options live under the "## Ambiences" heading as `- Name: tagline`, with
-    indented `- prompt:`, `- audio:` and `- builtin:` settings. Built-in options
+    indented `- prompt:`, `- audio:`, `- builtin:` and `- default:` settings. Built-in options
     have nothing to generate and are left out.
 
     Args:
@@ -71,7 +71,7 @@ def parse_ambiences(markdown: str) -> list[Ambience]:
         if not in_section:
             continue
         option = re.match(r"^[-*+]\s+([^:]+?)\s*(?::.*)?$", line)
-        setting = re.match(r"^\s+[-*+]\s+(prompt|audio|builtin):\s*(.+?)\s*$", line, re.IGNORECASE)
+        setting = re.match(r"^\s+[-*+]\s+(prompt|audio|builtin|default):\s*(.+?)\s*$", line, re.IGNORECASE)
         if option:
             options.append((option.group(1), {}))
         elif setting and options:
