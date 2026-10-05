@@ -408,8 +408,44 @@ function startSynthPad() {
 // Topology background
 // ---------------------------------------------------------------------------
 
+// OpsMill brand palette (Brand Guide, Apr 2026). The background is flat
+// OpsMill Purple, as the brand asks, and each re-converged topology picks a
+// node and packet colour pair from the secondary colours and their 65% tints,
+// which stay legible on purple. The full-strength violet is too dark for that.
+const BRAND = {
+  purple: "#231556",
+  blue65: "#84A0CC",
+  teal: "#63CDD4",
+  teal65: "#9ADFE3",
+  violet65: "#A771B3",
+  pink: "#C996C0",
+  yellow: "#FED34C",
+  yellow65: "#FEE28B",
+  purple25: "#C8C5D5",
+};
+const SCENE_COLOURS = [
+  { node: BRAND.teal, packet: BRAND.yellow },
+  { node: BRAND.blue65, packet: BRAND.teal },
+  { node: BRAND.pink, packet: BRAND.yellow },
+  { node: BRAND.yellow65, packet: BRAND.pink },
+  { node: BRAND.violet65, packet: BRAND.teal65 },
+  { node: BRAND.teal65, packet: BRAND.pink },
+];
+let lastSceneColours = null;
+
+function rgba(hex, alpha) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return `rgba(${value >> 16}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
+function pickSceneColours() {
+  const choices = SCENE_COLOURS.filter((colours) => colours !== lastSceneColours);
+  lastSceneColours = choices[Math.floor(Math.random() * choices.length)];
+  return lastSceneColours;
+}
+
 function createScene(width, height) {
-  const hue = Math.random() * 360;
+  const colours = pickSceneColours();
   const count = Math.round(Math.min(70, Math.max(18, (width * height) / 26000)));
   const nodes = Array.from({ length: count }, () => ({
     x: Math.random() * width,
@@ -437,7 +473,7 @@ function createScene(width, height) {
     }
   });
 
-  return { hue, nodes, links, packets: [], born: performance.now() };
+  return { colours, nodes, links, packets: [], born: performance.now() };
 }
 
 function nodePosition(node, time) {
@@ -449,12 +485,12 @@ function nodePosition(node, time) {
 }
 
 function drawScene(ctx, scene, time, alpha) {
-  const { hue, nodes, links, packets } = scene;
+  const { colours, nodes, links, packets } = scene;
   const positions = nodes.map((node) => nodePosition(node, time));
 
   ctx.globalAlpha = alpha;
   ctx.lineWidth = 1;
-  ctx.strokeStyle = `hsla(${hue}, 80%, 70%, 0.18)`;
+  ctx.strokeStyle = rgba(colours.node, 0.22);
   ctx.beginPath();
   for (const [a, b] of links) {
     ctx.moveTo(positions[a].x, positions[a].y);
@@ -480,8 +516,8 @@ function drawScene(ctx, scene, time, alpha) {
     const x = from.x + (to.x - from.x) * packet.progress;
     const y = from.y + (to.y - from.y) * packet.progress;
     const glow = ctx.createRadialGradient(x, y, 0, x, y, 10);
-    glow.addColorStop(0, `hsla(${(hue + 40) % 360}, 100%, 85%, 0.9)`);
-    glow.addColorStop(1, `hsla(${(hue + 40) % 360}, 100%, 60%, 0)`);
+    glow.addColorStop(0, rgba(colours.packet, 0.95));
+    glow.addColorStop(1, rgba(colours.packet, 0));
     ctx.fillStyle = glow;
     ctx.fillRect(x - 10, y - 10, 20, 20);
   }
@@ -490,11 +526,11 @@ function drawScene(ctx, scene, time, alpha) {
     const { x, y } = positions[i];
     const size = nodes[i].size;
     const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 6);
-    halo.addColorStop(0, `hsla(${hue}, 90%, 80%, 0.55)`);
-    halo.addColorStop(1, `hsla(${hue}, 90%, 60%, 0)`);
+    halo.addColorStop(0, rgba(colours.node, 0.55));
+    halo.addColorStop(1, rgba(colours.node, 0));
     ctx.fillStyle = halo;
     ctx.fillRect(x - size * 6, y - size * 6, size * 12, size * 12);
-    ctx.fillStyle = `hsla(${hue}, 100%, 92%, 0.95)`;
+    ctx.fillStyle = rgba("#FFFFFF", 0.95);
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
@@ -534,13 +570,7 @@ function createBackground(canvas) {
   }
 
   function frame(time) {
-    const hue = current.hue;
-    const background = ctx.createRadialGradient(
-      width / 2, height * 0.45, 0, width / 2, height * 0.45, Math.max(width, height) * 0.8,
-    );
-    background.addColorStop(0, `hsl(${(hue + 200) % 360}, 45%, 12%)`);
-    background.addColorStop(1, "hsl(240, 40%, 3%)");
-    ctx.fillStyle = background;
+    ctx.fillStyle = BRAND.purple;
     ctx.fillRect(0, 0, width, height);
 
     const fade = Math.min(1, (time - current.born) / fadeMs);
@@ -558,7 +588,7 @@ function createBackground(canvas) {
           continue;
         }
         ctx.font = `${token.size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-        ctx.fillStyle = `hsla(${hue}, 60%, 80%, ${0.12 * Math.min(1, token.y / (height * 0.3))})`;
+        ctx.fillStyle = rgba(BRAND.purple25, 0.16 * Math.min(1, token.y / (height * 0.3)));
         ctx.fillText(token.text, token.x, token.y);
       }
     }

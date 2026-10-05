@@ -1,9 +1,21 @@
+/* OpsMill brand colours (Brand Guide, Apr 2026). */
 :root {
-  --bg: #05050d;
+  --om-purple: #231556;
+  --om-purple-65: #706791;
+  --om-blue: #426DB1;
+  --om-blue-hover: #375E9C;
+  --om-yellow: #FED34C;
+
+  --bg: var(--om-purple);
   --text: #ffffff;
-  --glow: #988702;
-  --button-bg: #000000;
-  --button-hover: #374151;
+  --glow: rgb(254 211 76 / 0.7);
+  --button-bg: var(--om-blue);
+  --button-hover: var(--om-blue-hover);
+  --control: rgb(255 255 255 / 0.08);
+  --control-hover: rgb(255 255 255 / 0.16);
+  --panel: #2F2263;
+  --panel-line: var(--om-purple-65);
+  --highlight: var(--om-yellow);
   color-scheme: dark;
 }
 
@@ -154,7 +166,7 @@ body {
   padding: 0.5rem;
   border: 0;
   border-radius: 50%;
-  background: rgb(0 0 0 / 0.35);
+  background: var(--control);
   color: var(--text);
   cursor: pointer;
   opacity: 0.8;
@@ -164,7 +176,7 @@ body {
 .mute:hover,
 .mute:focus-visible {
   opacity: 1;
-  background: rgb(0 0 0 / 0.6);
+  background: var(--control-hover);
 }
 
 .mute svg {
@@ -199,7 +211,7 @@ body {
   padding: 0 2.2rem 0 0.8rem;
   border: 0;
   border-radius: 1.25rem;
-  background: rgb(0 0 0 / 0.35);
+  background: var(--control);
   color: var(--text);
   font: inherit;
   font-size: 0.875rem;
@@ -212,7 +224,7 @@ body {
 .ambience-button:focus-visible,
 .ambience-button[aria-expanded="true"] {
   opacity: 1;
-  background: rgb(0 0 0 / 0.6);
+  background: var(--control-hover);
 }
 
 .ambience-button:disabled {
@@ -264,16 +276,16 @@ body {
   width: max-content;
   max-width: min(19rem, calc(100vw - 32px - 3rem));
   padding: 0.5rem 0.8rem;
-  border: 1px solid rgb(245 215 110 / 0.35);
+  border: 1px solid rgb(254 211 76 / 0.45);
   border-radius: 0.8rem;
-  background: rgb(8 8 20 / 0.85);
+  background: var(--panel);
   color: var(--text);
   font: inherit;
   font-size: 0.8rem;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 0 18px rgb(152 135 2 / 0.3);
+  box-shadow: 0 0 18px rgb(254 211 76 / 0.2);
   animation: hint-in 0.6s ease forwards;
   transition: opacity 0.4s;
 }
@@ -289,9 +301,9 @@ body {
   bottom: -6px;
   width: 10px;
   height: 10px;
-  border-right: 1px solid rgb(245 215 110 / 0.35);
-  border-bottom: 1px solid rgb(245 215 110 / 0.35);
-  background: rgb(8 8 20 / 0.95);
+  border-right: 1px solid rgb(254 211 76 / 0.45);
+  border-bottom: 1px solid rgb(254 211 76 / 0.45);
+  background: var(--panel);
   transform: rotate(45deg);
 }
 
@@ -310,8 +322,8 @@ body {
 }
 
 @keyframes hint-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(245 215 110 / 0); }
-  50% { box-shadow: 0 0 16px 2px rgb(245 215 110 / 0.5); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(254 211 76 / 0); }
+  50% { box-shadow: 0 0 16px 2px rgb(254 211 76 / 0.5); }
 }
 
 /* Positioned against .controls so it can use the full width on a phone. */
@@ -321,12 +333,10 @@ body {
   bottom: calc(100% + 0.6rem);
   width: min(23rem, calc(100vw - 32px));
   padding: 0.5rem;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid var(--panel-line);
   border-radius: 1rem;
-  background: rgb(8 8 20 / 0.88);
-  box-shadow: 0 0 40px rgb(152 135 2 / 0.25), 0 12px 32px rgb(0 0 0 / 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--panel);
+  box-shadow: 0 0 40px rgb(254 211 76 / 0.12), 0 12px 32px rgb(0 0 0 / 0.35);
   animation: fade-in 0.2s ease;
 }
 
@@ -357,6 +367,8 @@ body {
   overflow-y: auto;
   list-style: none;
   outline: none;
+  scrollbar-color: var(--panel-line) transparent;
+  scrollbar-width: thin;
 }
 
 .ambience-menu li {
@@ -388,7 +400,7 @@ body {
 }
 
 .ambience-menu li[aria-selected="true"] .ambience-name {
-  color: #f5d76e;
+  color: var(--highlight);
 }
 
 .ambience-menu li[aria-selected="true"]::after {
@@ -399,8 +411,8 @@ body {
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  background: #f5d76e;
-  box-shadow: 0 0 8px #f5d76e;
+  background: var(--highlight);
+  box-shadow: 0 0 8px var(--highlight);
   transform: translateY(-50%);
 }
 
@@ -449,6 +461,6 @@ body {
 
   .ambience.hinting .ambience-button {
     animation: none;
-    box-shadow: 0 0 12px 1px rgb(245 215 110 / 0.4);
+    box-shadow: 0 0 12px 1px rgb(254 211 76 / 0.4);
   }
 }
