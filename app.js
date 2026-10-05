@@ -1,12 +1,14 @@
 // NetZenOps: affirmations for the network automation engineer.
 // Quotes come from quotes.md, voice-overs from audio/<slug>.mp3, and the
 // background is a generated network topology that re-converges on every quote,
-// with the floating words taken from terms.md.
+// with the floating words taken from terms.md and the background sound menu
+// from ambience.md.
 
 const QUOTES_FILE = "quotes.md";
 const TERMS_FILE = "terms.md";
 const AUDIO_DIR = "audio";
-const AMBIENT_FILE = `${AUDIO_DIR}/ambient.mp3`;
+const AMBIENCE_FILE = "ambience.md";
+const AMBIENCE_DIR = `${AUDIO_DIR}/ambience`;
 const GAP_AFTER_QUOTE_MS = 2000;
 const MIN_SILENT_QUOTE_MS = 6000;
 const MS_PER_WORD = 450;
@@ -35,17 +37,22 @@ function parseListItems(markdown) {
     .map((item) => item[1]);
 }
 
+// An optional <!-- audio: name --> comment picks the filename instead of the slug.
+function extractAudioOverride(item) {
+  const override = item.match(/<!--\s*audio:\s*([^\s>]+?)\s*-->/i);
+  if (!override) return { text: item, stem: null };
+  return {
+    text: item.replace(override[0], "").trim(),
+    stem: override[1].replace(/\.mp3$/i, ""),
+  };
+}
+
 function parseQuotes(markdown) {
   const quotes = [];
-  for (let text of parseListItems(markdown)) {
-    let audio = null;
-    const override = text.match(/<!--\s*audio:\s*([^\s>]+?)\s*-->/i);
-    if (override) {
-      audio = override[1].replace(/\.mp3$/i, "");
-      text = text.replace(override[0], "").trim();
-    }
+  for (const item of parseListItems(markdown)) {
+    const { text, stem } = extractAudioOverride(item);
     if (!text) continue;
-    quotes.push({ text, audio: `${AUDIO_DIR}/${audio ?? slugify(text)}.mp3` });
+    quotes.push({ text, audio: `${AUDIO_DIR}/${stem ?? slugify(text)}.mp3` });
   }
   return quotes;
 }
@@ -95,69 +102,71 @@ function createShuffleBag(items) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ---------------------------------------------------------------------------
-// Mute: one switch for every sound source, remembered between visits.
+// Sound: one reused element for the voice-overs, and every ambience (looped
+// recordings and the synth pad) mixed through a single Web Audio bus.
 // ---------------------------------------------------------------------------
 
 const MUTE_KEY = "netzenops-muted";
+const AMBIENCE_KEY = "netzenops-ambience";
 const PAD_VOLUME = 0.06;
-const AMBIENT_VOLUME = 0.5;
+const AMBIENCE_FADE_S = 1.5;
 
 const sound = {
-  muted: readMutePreference(),
-  media: new Set(),
-  padGain: null,
+  muted: readPreference(MUTE_KEY) === "true",
   voice: null,
   context: null,
+  bus: null,
+  ambience: null,
+  buffers: new Map(),
+  switchToken: 0,
 };
 
-function readMutePreference() {
+function readPreference(key) {
   try {
-    return localStorage.getItem(MUTE_KEY) === "true";
+    return localStorage.getItem(key);
   } catch {
-    return false;
+    return null;
+  }
+}
+
+function writePreference(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Private windows can refuse storage; the setting still applies this visit.
   }
 }
 
 function setMuted(muted) {
   sound.muted = muted;
-  for (const element of sound.media) element.muted = muted;
-  if (sound.padGain) {
-    const { gain, context } = sound.padGain;
-    gain.cancelScheduledValues(context.currentTime);
-    gain.setTargetAtTime(muted ? 0 : PAD_VOLUME, context.currentTime, 0.15);
-  }
-  try {
-    localStorage.setItem(MUTE_KEY, String(muted));
-  } catch {
-    // Private windows can refuse storage; muting still works for this visit.
-  }
-}
-
-function trackMedia(element) {
-  element.muted = sound.muted;
-  sound.media.add(element);
-  return element;
+  if (sound.voice) sound.voice.muted = muted;
+  if (sound.bus) sound.bus.gain.setTargetAtTime(muted ? 0 : 1, sound.context.currentTime, 0.15);
+  writePreference(MUTE_KEY, String(muted));
 }
 
 // Mobile browsers, iOS Safari above all, only let a media element or an
 // AudioContext make sound if it was first started inside a user gesture, and
 // that permission belongs to the element, not the page. So the voice element
-// and the audio context are created once, in the click handler, and reused for
-// every quote. A fresh new Audio() per quote plays once on a phone, then
-// silently fails for every quote after it.
+// and the audio context are created once, in the click handler, and reused.
+// A fresh new Audio() per quote plays once on a phone, then silently fails.
+// Ambience goes through Web Audio, which also loops without the gap an MP3 in
+// an <audio> element leaves at the loop point.
 function unlockAudio() {
-  sound.voice = trackMedia(new Audio());
+  sound.voice = new Audio();
   sound.voice.preload = "auto";
+  sound.voice.muted = sound.muted;
 
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (AudioContextClass) {
-    sound.context = new AudioContextClass();
-    sound.context.resume();
-    // iOS suspends the context when the page is backgrounded.
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden && sound.context.state !== "running") sound.context.resume();
-    });
-  }
+  if (!AudioContextClass) return;
+  sound.context = new AudioContextClass();
+  sound.context.resume();
+  sound.bus = sound.context.createGain();
+  sound.bus.gain.value = sound.muted ? 0 : 1;
+  sound.bus.connect(sound.context.destination);
+  // iOS suspends the context when the page is backgrounded.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && sound.context.state !== "running") sound.context.resume();
+  });
 }
 
 // Must be called synchronously from the click handler for the first quote, so
@@ -180,52 +189,190 @@ function playVoice(src) {
 }
 
 // ---------------------------------------------------------------------------
-// Ambient sound: audio/ambient.mp3 if present, otherwise a soft synth pad.
+// Ambience: the menu comes from ambience.md, files from audio/ambience/.
 // ---------------------------------------------------------------------------
 
-// Called from the click handler. The track is started straight away rather
-// than after an existence check, because an await would leave the gesture.
-function startAmbient() {
-  const track = trackMedia(new Audio(AMBIENT_FILE));
-  track.loop = true;
-  let fellBack = false;
-  const fallBack = () => {
-    if (fellBack) return;
-    fellBack = true;
-    sound.media.delete(track);
-    console.info("No ambient track, using synth pad");
-    startSynthPad();
-  };
-  track.addEventListener("error", fallBack, { once: true });
+const BUILT_INS = new Set(["synth", "off"]);
 
-  // iOS ignores element.volume, so set the level with a gain node instead.
-  if (sound.context) {
-    const gain = sound.context.createGain();
-    gain.gain.value = AMBIENT_VOLUME;
-    sound.context.createMediaElementSource(track).connect(gain).connect(sound.context.destination);
-  } else {
-    track.volume = AMBIENT_VOLUME;
+// Options live under the "## Ambiences" heading as `- Name: tagline`, with
+// indented `- prompt:`, `- audio:` and `- builtin:` settings underneath.
+function parseAmbiences(markdown) {
+  const ambiences = [];
+  let inSection = false;
+  let current = null;
+  for (const line of markdown.split(/\r?\n/)) {
+    if (/^#{1,6}\s/.test(line)) {
+      inSection = /^##\s+Ambiences\s*$/i.test(line);
+      current = null;
+      continue;
+    }
+    if (!inSection) continue;
+    const option = line.match(/^[-*+]\s+([^:]+?)\s*(?::\s*(.*?))?\s*$/);
+    const setting = line.match(/^\s+[-*+]\s+(prompt|audio|builtin):\s*(.+?)\s*$/i);
+    if (option) {
+      current = { name: option[1], tagline: option[2] ?? "", settings: {} };
+      ambiences.push(current);
+    } else if (setting && current) {
+      current.settings[setting[1].toLowerCase()] = setting[2];
+    }
   }
-  track.play().catch(fallBack);
+  return ambiences.flatMap(({ name, tagline, settings }) => {
+    const builtIn = settings.builtin?.toLowerCase() ?? null;
+    if (builtIn && !BUILT_INS.has(builtIn)) {
+      console.warn(`Unknown builtin "${builtIn}" for ${name} in ${AMBIENCE_FILE}`);
+      return [];
+    }
+    const id = settings.audio?.replace(/\.mp3$/i, "") ?? slugify(name);
+    return [{ id, name, tagline, builtIn, src: builtIn ? null : `${AMBIENCE_DIR}/${id}.mp3` }];
+  });
+}
+
+const FALLBACK_AMBIENCES = [
+  { id: "synth-pad", name: "Synth pad", tagline: "", builtIn: "synth", src: null },
+  { id: "off", name: "Off", tagline: "", builtIn: "off", src: null },
+];
+
+// Options whose file has not been generated yet are left out of the menu.
+async function loadAmbiences() {
+  let listed = [];
+  try {
+    const response = await fetch(AMBIENCE_FILE, { cache: "no-cache" });
+    if (!response.ok) throw new Error(`${response.status}`);
+    listed = parseAmbiences(await response.text());
+  } catch (error) {
+    console.info(`Could not load ${AMBIENCE_FILE}, offering built-in ambience only`, error);
+  }
+  const checks = await Promise.all(
+    listed.map((ambience) =>
+      ambience.builtIn
+        ? true
+        : fetch(ambience.src, { method: "HEAD", cache: "no-cache" })
+            .then((response) => response.ok)
+            .catch(() => false),
+    ),
+  );
+  const missing = listed.filter((_, index) => !checks[index]).map((ambience) => ambience.src);
+  if (missing.length) console.info("Ambience files not found, hidden from the menu:", missing);
+  const available = listed.filter((_, index) => checks[index]);
+  return available.length ? available : FALLBACK_AMBIENCES;
+}
+
+function fadeIn(gainNode, target) {
+  const now = sound.context.currentTime;
+  gainNode.gain.setValueAtTime(0, now);
+  gainNode.gain.linearRampToValueAtTime(target, now + AMBIENCE_FADE_S);
+}
+
+function fadeOutAndStop(gainNode, sources) {
+  const now = sound.context.currentTime;
+  gainNode.gain.cancelScheduledValues(now);
+  gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+  gainNode.gain.linearRampToValueAtTime(0, now + AMBIENCE_FADE_S);
+  for (const source of sources) source.stop(now + AMBIENCE_FADE_S + 0.05);
+  setTimeout(() => gainNode.disconnect(), (AMBIENCE_FADE_S + 0.2) * 1000);
+}
+
+// Generated loops vary wildly in level (a data hall roars, a NOC at night
+// barely registers) and not every one wraps cleanly. So each loop is prepared
+// once after decoding: its last LOOP_BLEND_S seconds are blended into its
+// start, which makes the wrap point continuous whatever the file does, and its
+// level is matched to a common target with caps so a near-silent clip's hiss
+// is not blown up and nothing clips.
+const LOOP_BLEND_S = 1.5;
+const AMBIENCE_TARGET_RMS = 0.05; // about -26 dBFS, well under the voice-overs
+const AMBIENCE_PEAK_CEILING = 0.5;
+const AMBIENCE_MAX_GAIN = 40; // +32 dB
+
+function prepareLoop(decoded) {
+  const blend = Math.min(Math.floor(LOOP_BLEND_S * decoded.sampleRate), Math.floor(decoded.length / 3));
+  const length = decoded.length - blend;
+  const channels = decoded.numberOfChannels;
+  const loop = sound.context.createBuffer(channels, length, decoded.sampleRate);
+  let sumSquares = 0;
+  let peak = 0;
+  for (let channel = 0; channel < channels; channel++) {
+    const input = decoded.getChannelData(channel);
+    const output = loop.getChannelData(channel);
+    output.set(input.subarray(0, length));
+    for (let i = 0; i < blend; i++) {
+      const angle = (i / blend) * (Math.PI / 2);
+      output[i] = input[i] * Math.sin(angle) + input[length + i] * Math.cos(angle);
+    }
+    for (let i = 0; i < length; i++) {
+      sumSquares += output[i] * output[i];
+      peak = Math.max(peak, Math.abs(output[i]));
+    }
+  }
+  const rms = Math.sqrt(sumSquares / (length * channels));
+  const gain = Math.min(
+    AMBIENCE_TARGET_RMS / Math.max(rms, 1e-6),
+    AMBIENCE_PEAK_CEILING / Math.max(peak, 1e-6),
+    AMBIENCE_MAX_GAIN,
+  );
+  return { buffer: loop, gain };
+}
+
+function loadLoop(src) {
+  if (!sound.buffers.has(src)) {
+    const pending = fetch(src)
+      .then((response) => {
+        if (!response.ok) throw new Error(`${src}: ${response.status}`);
+        return response.arrayBuffer();
+      })
+      // Callback form, because older Safari has no promise-returning version.
+      .then((data) => new Promise((resolve, reject) => sound.context.decodeAudioData(data, resolve, reject)))
+      .then(prepareLoop);
+    pending.catch(() => sound.buffers.delete(src));
+    sound.buffers.set(src, pending);
+  }
+  return sound.buffers.get(src);
+}
+
+function startLoop({ buffer, gain }) {
+  const output = sound.context.createGain();
+  fadeIn(output, gain);
+  output.connect(sound.bus);
+  const source = sound.context.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(output);
+  source.start();
+  return { stop: () => fadeOutAndStop(output, [source]) };
+}
+
+async function setAmbience(choice) {
+  const token = ++sound.switchToken;
+  sound.ambience?.stop();
+  sound.ambience = null;
+  if (!sound.context || choice.builtIn === "off") return;
+  if (choice.builtIn === "synth") {
+    sound.ambience = startSynthPad();
+    return;
+  }
+  try {
+    const loop = await loadLoop(choice.src);
+    // Ignore a slow download if the listener has already picked something else.
+    if (token === sound.switchToken) sound.ambience = startLoop(loop);
+  } catch (error) {
+    console.warn(`Could not play ${choice.src}, using the synth pad instead`, error);
+    if (token === sound.switchToken) sound.ambience = startSynthPad();
+  }
 }
 
 function startSynthPad() {
   const context = sound.context;
-  if (!context) return;
-
-  const master = context.createGain();
-  master.gain.setValueAtTime(0, context.currentTime);
-  master.gain.linearRampToValueAtTime(sound.muted ? 0 : PAD_VOLUME, context.currentTime + 6);
-  sound.padGain = { gain: master.gain, context };
+  const output = context.createGain();
+  fadeIn(output, PAD_VOLUME);
+  output.connect(sound.bus);
 
   const filter = context.createBiquadFilter();
   filter.type = "lowpass";
   filter.frequency.value = 900;
   filter.Q.value = 0.7;
-  filter.connect(master);
-  master.connect(context.destination);
+  filter.connect(output);
 
   // A major 9: calm, unresolved, vaguely spa-like.
+  const sources = [];
   const chord = [110, 164.81, 246.94, 277.18, 415.3];
   chord.forEach((frequency, index) => {
     const voice = context.createGain();
@@ -238,6 +385,7 @@ function startSynthPad() {
     swellDepth.gain.value = 0.12;
     swell.connect(swellDepth).connect(voice.gain);
     swell.start();
+    sources.push(swell);
 
     for (const detune of [-7, 7]) {
       const oscillator = context.createOscillator();
@@ -246,8 +394,10 @@ function startSynthPad() {
       oscillator.detune.value = detune;
       oscillator.connect(voice);
       oscillator.start();
+      sources.push(oscillator);
     }
   });
+  return { stop: () => fadeOutAndStop(output, sources) };
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +615,7 @@ async function main() {
   const quoteElement = document.getElementById("quote");
 
   loadTerms().then((terms) => background.setTerms(terms));
+  const ambiences = loadAmbiences();
 
   let quotes;
   try {
@@ -482,10 +633,11 @@ async function main() {
       enter.remove();
       stage.classList.add("playing");
       quoteElement.hidden = false;
-      setupMuteButton(document.getElementById("mute"));
       // Everything audible starts synchronously inside this click; see unlockAudio().
       unlockAudio();
-      startAmbient();
+      setupMuteButton(document.getElementById("mute"));
+      ambiences.then((list) => setupAmbienceMenu(document.getElementById("ambience"), list));
+      document.getElementById("controls").hidden = false;
       runAffirmations(quotes, background, quoteElement);
     },
     { once: true },
@@ -504,12 +656,103 @@ function setupMuteButton(button) {
   };
   button.addEventListener("click", toggle);
   document.addEventListener("keydown", (event) => {
-    if (event.key.toLowerCase() === "m" && !event.metaKey && !event.ctrlKey && !event.altKey) {
-      toggle();
-    }
+    const typing = event.target instanceof Element && event.target.closest(".ambience-menu");
+    const modified = event.metaKey || event.ctrlKey || event.altKey;
+    if (event.key.toLowerCase() === "m" && !typing && !modified) toggle();
   });
   render();
-  button.hidden = false;
+}
+
+// A listbox popup rather than a <select>, so each option can show its tagline.
+function setupAmbienceMenu(root, ambiences) {
+  const button = root.querySelector(".ambience-button");
+  const current = root.querySelector(".ambience-current");
+  const menu = root.querySelector(".ambience-menu");
+  const list = root.querySelector('[role="listbox"]');
+  const savedIndex = ambiences.findIndex((ambience) => ambience.id === readPreference(AMBIENCE_KEY));
+  let selected = Math.max(0, savedIndex);
+  let active = selected;
+
+  const options = ambiences.map((ambience, index) => {
+    const option = document.createElement("li");
+    option.id = `ambience-option-${ambience.id}`;
+    option.setAttribute("role", "option");
+    const name = document.createElement("span");
+    name.className = "ambience-name";
+    name.textContent = ambience.name;
+    option.append(name);
+    if (ambience.tagline) {
+      const tagline = document.createElement("span");
+      tagline.className = "ambience-tagline";
+      tagline.textContent = ambience.tagline;
+      option.append(tagline);
+    }
+    option.addEventListener("click", () => {
+      choose(index);
+      writePreference(AMBIENCE_KEY, ambience.id);
+      close(true);
+    });
+    option.addEventListener("pointermove", () => setActive(index));
+    return option;
+  });
+  list.replaceChildren(...options);
+
+  function setActive(index) {
+    active = (index + options.length) % options.length;
+    options.forEach((option, i) => option.classList.toggle("active", i === active));
+    list.setAttribute("aria-activedescendant", options[active].id);
+    options[active].scrollIntoView({ block: "nearest" });
+  }
+
+  function choose(index) {
+    selected = index;
+    options.forEach((option, i) => option.setAttribute("aria-selected", String(i === selected)));
+    const ambience = ambiences[selected];
+    current.textContent = ambience.name;
+    button.title = ambience.tagline || ambience.name;
+    setAmbience(ambience);
+  }
+
+  function onOutsidePointer(event) {
+    if (!root.contains(event.target)) close(false);
+  }
+
+  function open() {
+    menu.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    setActive(selected);
+    list.focus();
+    document.addEventListener("pointerdown", onOutsidePointer);
+  }
+
+  function close(refocus) {
+    menu.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    document.removeEventListener("pointerdown", onOutsidePointer);
+    if (refocus) button.focus();
+  }
+
+  button.addEventListener("click", () => (menu.hidden ? open() : close(true)));
+  list.addEventListener("keydown", (event) => {
+    const moves = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: options.length - 1 };
+    if (event.key in moves) {
+      setActive(moves[event.key]);
+    } else if (event.key === "Enter" || event.key === " ") {
+      choose(active);
+      writePreference(AMBIENCE_KEY, ambiences[active].id);
+      close(true);
+    } else if (event.key === "Escape") {
+      close(true);
+    } else if (event.key === "Tab") {
+      close(false);
+      return;
+    } else {
+      return;
+    }
+    event.preventDefault();
+  });
+  choose(selected);
+  button.disabled = false;
 }
 
 main();

@@ -198,6 +198,25 @@ class ElevenLabsClient:
         path = f"/v1/text-to-speech/{voice_id}?output_format={OUTPUT_FORMAT}"
         return self._request("POST", path, {"text": text, "model_id": model})
 
+    def sound_effect(self, prompt: str, duration_seconds: float, loop: bool) -> bytes:
+        """Render a sound effect from a text prompt.
+
+        Args:
+            prompt: Description of the sound.
+            duration_seconds: Length of the clip, between 0.5 and 30 seconds.
+            loop: Whether ElevenLabs should make the clip loop seamlessly.
+
+        Returns:
+            MP3 bytes.
+        """
+        body = {
+            "text": prompt,
+            "model_id": "eleven_text_to_sound_v2",
+            "duration_seconds": duration_seconds,
+            "loop": loop,
+        }
+        return self._request("POST", f"/v1/sound-generation?output_format={OUTPUT_FORMAT}", body)
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""

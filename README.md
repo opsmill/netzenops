@@ -12,7 +12,7 @@ It's a static site with no build step: `index.html`, `style.css` and `app.js` se
 2. Clicking **FIND MY AUTOMATION ZEN** starts the ambient sound and the affirmation loop. Browsers block audio until the visitor interacts, which is why the button exists.
 3. Quotes play in shuffled order and none repeats until all of them have played. Each quote fades in and its voice-over plays from `audio/`. After a 2 second pause the next one starts, and the background topology re-converges in a new colour.
 4. A quote with no audio file still shows, it stays on screen for roughly the time it takes to read (6 seconds at minimum).
-5. If there is no `audio/ambient.mp3`, a quiet synth pad is generated in the browser so the room is never completely silent.
+5. Background sound plays underneath. Visitors pick it from the menu next to the mute button in the bottom-left, and the choice is remembered between visits.
 
 ## Editing quotes
 
@@ -76,9 +76,42 @@ To do it by hand instead, export each quote from ElevenLabs as MP3 and drop it i
 | Why do I feel so calm knowing the vendor API changes next release? | `why-do-i-feel-so-calm-knowing-the-vendor-api-changes-next-release.mp3` |
 | Why does my change window feel so peaceful at 2am on a Sunday? | `why-does-my-change-window-feel-so-peaceful-at-2am-on-a-sunday.mp3` |
 
-To replace the synth pad, add a loopable track as `audio/ambient.mp3`. It plays at half volume underneath the voice.
 
 If a quote isn't playing its audio, open the browser console. The page logs every audio path it tried and couldn't find.
+
+## Background sound
+
+The menu next to the mute button asks "Where are you automating from today?" and lists every place a network engineer ends up working. It comes from [ambience.md](ambience.md). Each option is a name, a tagline shown under it in the menu, and indented settings:
+
+```markdown
+- Data center: Hot aisle, cold aisle, no phone signal. Bring a hoodie.
+  - prompt: Inside a large data center hall, constant loud roar of server fans and cooling units, steady broadband white noise, faint electrical hum, no voices
+- Off: Just you and the voice in your head.
+  - builtin: off
+```
+
+- `prompt:` is what ElevenLabs gets asked to generate.
+- `audio:` (optional) overrides the filename. By default "Data center" plays `audio/ambience/data-center.mp3`, the name turned into a slug with the same rule as quotes.
+- `builtin:` is `synth` for the drone generated in the browser, or `off` for silence. Built-in options need no file.
+
+Options whose file doesn't exist yet are hidden from the menu, so it's safe to list ideas before generating them. The first option is the default, and each visitor's choice is remembered.
+
+Every loop is prepared in the browser before it plays, because generated loops vary a lot. The quietest file here is about 45 dB below the loudest, and some don't wrap cleanly.
+
+- The last 1.5 seconds are blended into the start, so the loop point is seamless whatever the file does.
+- The level is matched to a common target, with caps so a near-silent clip's hiss isn't amplified more than 32 dB and nothing clips.
+
+Switching options crossfades over 1.5 seconds.
+
+To generate the loops with the ElevenLabs Sound Effects API (`eleven_text_to_sound_v2`, with looping on):
+
+```bash
+uv run scripts/generate_ambience.py --dry-run              # plan and credit estimate
+uv run scripts/generate_ambience.py --only "data center"   # one loop
+uv run scripts/generate_ambience.py                        # every missing loop
+```
+
+Note: ElevenLabs caps sound effects at 30 seconds and charges 40 credits per second when the duration is set, so each 30-second loop costs 1,200 credits.
 
 ## Running locally
 

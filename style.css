@@ -131,11 +131,22 @@ body {
   display: block;
 }
 
-.mute {
+.controls {
   position: fixed;
   bottom: 2rem;
   left: 2.5rem;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controls[hidden] {
+  display: none;
+}
+
+.mute {
+  flex: none;
   width: 2.5rem;
   height: 2.5rem;
   padding: 0.5rem;
@@ -176,10 +187,185 @@ body {
   display: block;
 }
 
+.ambience-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  max-width: 15rem;
+  padding: 0 2.2rem 0 0.8rem;
+  border: 0;
+  border-radius: 1.25rem;
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.25s, background-color 0.25s;
+}
+
+.ambience-button:hover,
+.ambience-button:focus-visible,
+.ambience-button[aria-expanded="true"] {
+  opacity: 1;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.ambience-button:disabled {
+  cursor: progress;
+}
+
+.ambience-button svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
+.ambience-button svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.ambience-current {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ambience-button::after {
+  content: "";
+  position: absolute;
+  right: 0.95rem;
+  top: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-left: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.ambience-button[aria-expanded="true"]::after {
+  transform: translateY(-75%) rotate(225deg);
+}
+
+/* Positioned against .controls so it can use the full width on a phone. */
+.ambience-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.6rem);
+  width: min(23rem, calc(100vw - 32px));
+  padding: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 1rem;
+  background: rgb(8 8 20 / 0.88);
+  box-shadow: 0 0 40px rgb(152 135 2 / 0.25), 0 12px 32px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fade-in 0.2s ease;
+}
+
+.ambience-menu[hidden] {
+  display: none;
+}
+
+.ambience-title {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0;
+  font-family: Papyrus, "Herculanum", fantasy;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  text-shadow: 0 0 12px #ffffff, 0 0 12px var(--glow);
+}
+
+.ambience-subtitle {
+  margin: 0.25rem 0 0.4rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.ambience-menu ul {
+  max-height: min(55vh, 26rem);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  outline: none;
+}
+
+.ambience-menu li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.ambience-menu li.active {
+  background: rgb(255 255 255 / 0.09);
+}
+
+.ambience-menu ul:focus-visible li.active {
+  outline: 1px solid rgb(255 255 255 / 0.5);
+}
+
+.ambience-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ambience-tagline {
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+
+.ambience-menu li[aria-selected="true"] .ambience-name {
+  color: #f5d76e;
+}
+
+.ambience-menu li[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #f5d76e;
+  box-shadow: 0 0 8px #f5d76e;
+  transform: translateY(-50%);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* On phones the controls sit above the footer instead of beside it. */
 @media (max-width: 639px) {
-  .mute {
+  .controls {
     left: 16px;
-    bottom: 1.75rem;
+    right: 16px;
+    bottom: 4.25rem;
+  }
+
+  .footer {
+    bottom: 1.5rem;
+  }
+
+  #stage.playing {
+    padding-bottom: 22vh;
   }
 }
 
