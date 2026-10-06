@@ -2,7 +2,7 @@
 
 Affirmations for the network automation engineer, inspired by [srenity.online](https://www.srenity.online/) (a [krazam.tv](https://www.youtube.com/watch?v=ia8Q51ouA_s) production). Press the button, breathe in, and let a soothing voice remind you that your YAML is fine.
 
-Published with GitHub Pages at <https://opsmill.github.io/netzenops/>.
+Live at <https://netzenops.online>, deployed by Cloudflare Workers from `main`. GitHub Pages also serves it at <https://opsmill.github.io/netzenops/>.
 
 ## How it works
 
@@ -115,6 +115,10 @@ uv run scripts/generate_ambience.py                        # every missing loop
 ```
 
 Note: ElevenLabs caps sound effects at 30 seconds and charges 40 credits per second when the duration is set, so each 30-second loop costs 1,200 credits.
+
+## Deployment
+
+Cloudflare Workers Builds deploys every push to `main` with `npx wrangler deploy`. There is no build step. [wrangler.jsonc](wrangler.jsonc) defines an assets-only Worker that serves the repo root, and [.assetsignore](.assetsignore) keeps `scripts/`, dotfiles and the config out of the upload. When you add a file the site shouldn't serve, add it to `.assetsignore` too.
 
 ## Running locally
 

@@ -1,0 +1,16 @@
+# Files Wrangler must not publish. Same syntax as .gitignore. Everything else
+# in the repo root is served as part of the site.
+.git
+.github
+.env
+.env.*
+.envrc
+.gitignore
+.assetsignore
+.nojekyll
+.DS_Store
+.wrangler
+node_modules
+__pycache__
+scripts
+wrangler.jsonc

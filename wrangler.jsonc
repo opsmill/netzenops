@@ -1,0 +1,10 @@
+// Cloudflare Workers config: an assets-only Worker serving the repo root as a
+// static site at netzenops.online. There is no Worker script and no build
+// step. .assetsignore keeps tooling and repo files out of the upload.
+{
+  "name": "netzenops",
+  "compatibility_date": "2026-10-06",
+  "assets": {
+    "directory": "."
+  }
+}
