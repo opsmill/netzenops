@@ -116,6 +116,53 @@ body {
   to { clip-path: polygon(50% -150%, 250% 50%, 50% 250%, -150% 50%); }
 }
 
+/* Top-right link to quotes.md on GitHub, where people can open a PR. */
+.suggest {
+  position: fixed;
+  top: 1.5rem;
+  right: 2.5rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.25rem;
+  padding: 0 0.9rem;
+  border-radius: 1.125rem;
+  background: var(--control);
+  color: var(--text);
+  font-size: 0.8rem;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.suggest:hover,
+.suggest:focus-visible {
+  opacity: 1;
+  background: var(--control-hover);
+}
+
+.suggest:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.suggest svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 639px) {
+  .suggest {
+    top: 16px;
+    right: 16px;
+  }
+}
+
 .footer {
   position: fixed;
   bottom: 2.5rem;
